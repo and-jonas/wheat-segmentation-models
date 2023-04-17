@@ -6,7 +6,7 @@ This repository contains code for training and validating wheat vegetation and w
 
 
 > Jonas Anderegg  
-> Plant Pathology Group
+> Plant Pathology Group  
 > ETH Zürich  
 
 ## Installation
