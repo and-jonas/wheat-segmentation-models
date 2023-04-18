@@ -1,26 +1,26 @@
 
 import os
-import re
-from EarSegmentor import EarSegmentor
+from ImageSegmentor import EarSegmentor
 
-workdir = '/home/anjonas/public/Public/Jonas/Data/FPWW002/wheat_head_annotations/year_mix_80_20/validation/images'
-# workdir = '/home/anjonas/public/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation/all_annotations/images'
+abspath = os.path.abspath(__file__)
+d_name = os.path.dirname(abspath)
+os.chdir(d_name)
+
+workdir = d_name + "/data/Inference/images"
 
 
 def run():
     dirs_to_process = [workdir]  # must be a list
-    task = "SegEar"
-    # task = "SegVeg"
-    dir_output = f'{workdir}/Output'
-    dir_model = "/projects/SegEar/segear_ff.pt"
-    # dir_model = "/projects/SegVeg2/segveg_ff.pt"
-    dir_patch_coordinates = None
+    dir_output = "output"
+    dir_ear_model = "segear_ff.pt"
+    dir_veg_model = "segveg_ff.pt"
+    dir_patch_coordinates = "data/Inference/coordinates"
     image_pre_segmentor = EarSegmentor(dirs_to_process=dirs_to_process,
-                                       task=task,
-                                       dir_model=dir_model,
+                                       dir_ear_model=dir_ear_model,
+                                       dir_veg_model=dir_veg_model,
                                        dir_patch_coordinates=dir_patch_coordinates,
                                        dir_output=dir_output,
-                                       img_type="png")
+                                       img_type="JPG")
     image_pre_segmentor.process_images()
 
 

@@ -183,22 +183,23 @@ class SemSegInputTransform(InputTransform):
 
 # Workaround
 def set_input_transform_options(head="deeplabv3plus",
-                                size=700,
+                                train_size=700,
                                 crop_factor=0.64,
                                 blur_kernel_size=3,
                                 p_color_jitter=0.0,
+                                predict_scale=1,
                                 ):
 
     # padding is still necessary, even though 448*448 is sampled later
     divisor = 16 if head == "deeplabv3plus" else 32
-    pad_to = (size + (divisor - size % divisor), size + (divisor - size % divisor))
+    pad_to = (train_size + (divisor - train_size % divisor), train_size + (divisor - train_size % divisor))
 
     sigma = (1, 1)
 
     p_blur = 0 if blur_kernel_size == 1 else 0.5
     blur_kernel_size = (blur_kernel_size, blur_kernel_size)
 
-    crop_size_ = int(crop_factor*size)
+    crop_size_ = int(crop_factor*train_size)
     crop_size = (crop_size_, crop_size_)
 
     # determine predict_size depending on (i) original size of patches to predict,
@@ -206,9 +207,10 @@ def set_input_transform_options(head="deeplabv3plus",
     # or (=1) for ESWW006 segveg
     # predict_size = 4000 * (size/1200) * (1/2.25)  # <==================================================================
     # predict_size = 4000 * (size/1200)  # <=============================================================================
+    predict_size = 4000 * (train_size/1200) * predict_scale
 
     # 2022-02-15 EARS
-    predict_size = 1200 * (size/1200)
+    predict_size = 1200 * (train_size/1200)
     # 2022-02-15 EARS END
 
     multiplier = np.ceil(predict_size / 16)
@@ -225,7 +227,7 @@ def set_input_transform_options(head="deeplabv3plus",
         def train_per_sample_transform(self) -> Callable:
 
             transforms = [
-                K.geometry.Resize(size, interpolation="nearest"),
+                K.geometry.Resize(train_size, interpolation="nearest"),
                 # K.augmentation.PadTo(pad_to),
                 K.augmentation.RandomRotation(degrees=20),
                 # K.augmentation.RandomCrop((448, 448)),
@@ -251,7 +253,7 @@ def set_input_transform_options(head="deeplabv3plus",
 
         def val_per_sample_transform(self) -> Callable:
             transforms = [
-                K.geometry.Resize(size, interpolation="nearest"),
+                K.geometry.Resize(train_size, interpolation="nearest"),
                 # K.augmentation.RandomCrop(crop_size),  # Required if head == "fpn"
                 K.augmentation.PadTo((704, 704))
             ]
