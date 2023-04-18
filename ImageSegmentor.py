@@ -8,13 +8,9 @@ import glob
 import imageio
 import flash
 from flash.image import SemanticSegmentation, SemanticSegmentationData
-
-# import matplotlib
-# matplotlib.use('Qt5Agg')
-# import matplotlib.pyplot as plt
-
 from transforms2 import set_input_transform_options
 
+# define input transform for each task
 transform_ear = set_input_transform_options(train_size=600,
                                             crop_factor=0.64,
                                             p_color_jitter=0,
@@ -37,10 +33,8 @@ class EarSegmentor:
         # output paths
         self.path_output = Path(dir_output)
         self.path_ear_mask = self.path_output / "SegEar" / "Mask"
-        self.path_ear_proba = self.path_output / "SegEar" / "Proba"
         self.path_ear_overlay = self.path_output / "SegEar" / "Overlay"
         self.path_veg_mask = self.path_output / "SegVeg" / "Mask"
-        self.path_veg_proba = self.path_output / "SegVeg" / "Proba"
         self.path_veg_overlay = self.path_output / "SegVeg" / "Overlay"
         self.image_type = img_type
         # load the segmentation models
@@ -55,10 +49,8 @@ class EarSegmentor:
         """
         self.path_output.mkdir(parents=True, exist_ok=True)
         self.path_ear_mask.mkdir(parents=True, exist_ok=True)
-        self.path_ear_proba.mkdir(parents=True, exist_ok=True)
         self.path_ear_overlay.mkdir(parents=True, exist_ok=True)
         self.path_veg_mask.mkdir(parents=True, exist_ok=True)
-        self.path_veg_proba.mkdir(parents=True, exist_ok=True)
         self.path_veg_overlay.mkdir(parents=True, exist_ok=True)
 
     def file_feed(self):
@@ -161,13 +153,11 @@ class EarSegmentor:
             )
 
             # output paths
-            proba_name = self.path_ear_proba / base_name
             mask_name = self.path_ear_mask / png_name
             overlay_name = self.path_ear_overlay / base_name
 
             # save output
             imageio.imwrite(mask_name, mask)
-            # imageio.imwrite(proba_name, proba)
             imageio.imwrite(overlay_name, overlay)
 
             # (2) segment vegetation in patch  =========================================================================
@@ -178,11 +168,9 @@ class EarSegmentor:
             )
 
             # output paths
-            proba_name = self.path_veg_proba / base_name
             mask_name = self.path_veg_mask / png_name
             overlay_name = self.path_veg_overlay / base_name
 
             # save output
             imageio.imwrite(mask_name, mask)
-            # imageio.imwrite(proba_name, proba)
             imageio.imwrite(overlay_name, overlay)
