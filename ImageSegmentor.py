@@ -5,10 +5,14 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import glob
+import copy
+import pickle
 import imageio
+import cv2
 import flash
 from flash.image import SemanticSegmentation, SemanticSegmentationData
 from transforms2 import set_input_transform_options
+import SegmentationFunctions
 
 # define input transform for each task
 transform_ear = set_input_transform_options(train_size=600,
@@ -25,21 +29,29 @@ transform_veg = set_input_transform_options(train_size=700,
 
 class EarSegmentor:
 
-    def __init__(self, dirs_to_process, dir_patch_coordinates, dir_output, dir_ear_model, dir_veg_model, img_type):
+    def __init__(self, dirs_to_process, dir_patch_coordinates, dir_output,
+                 dir_ear_model, dir_veg_model, dir_col_model,
+                 img_type):
         self.dirs_to_process = dirs_to_process
         self.dir_patch_coordinates = Path(dir_patch_coordinates) if dir_patch_coordinates is not None else None
         self.dir_ear_model = Path(dir_ear_model)
         self.dir_veg_model = Path(dir_veg_model)
+        self.dir_col_model = Path(dir_col_model)
         # output paths
         self.path_output = Path(dir_output)
         self.path_ear_mask = self.path_output / "SegEar" / "Mask"
         self.path_ear_overlay = self.path_output / "SegEar" / "Overlay"
+        self.path_ear_col_mask = self.path_output / "SegEar" / "ColMask"
         self.path_veg_mask = self.path_output / "SegVeg" / "Mask"
         self.path_veg_overlay = self.path_output / "SegVeg" / "Overlay"
+        self.path_veg_col_mask = self.path_output / "SegVeg" / "ColMask"
+        self.path_patch = self.path_output / "Patches"
         self.image_type = img_type
         # load the segmentation models
         self.ear_model = SemanticSegmentation.load_from_checkpoint(self.dir_ear_model)
         self.veg_model = SemanticSegmentation.load_from_checkpoint(self.dir_veg_model)
+        with open(self.dir_col_model, 'rb') as model:
+            self.col_model = pickle.load(model)
         # instantiate trainer
         self.trainer = flash.Trainer(max_epochs=1, accelerator='gpu', devices=[0])
 
@@ -47,11 +59,9 @@ class EarSegmentor:
         """
         Creates all required output directories
         """
-        self.path_output.mkdir(parents=True, exist_ok=True)
-        self.path_ear_mask.mkdir(parents=True, exist_ok=True)
-        self.path_ear_overlay.mkdir(parents=True, exist_ok=True)
-        self.path_veg_mask.mkdir(parents=True, exist_ok=True)
-        self.path_veg_overlay.mkdir(parents=True, exist_ok=True)
+        for path in [self.path_output, self.path_ear_mask, self.path_ear_overlay, self.path_veg_mask,
+                     self.path_veg_overlay, self.path_ear_col_mask, self.path_veg_col_mask, self.path_patch]:
+            path.mkdir(parents=True, exist_ok=True)
 
     def file_feed(self):
         """
@@ -145,32 +155,82 @@ class EarSegmentor:
             else:
                 patch = pix
 
+            imageio.imwrite(self.path_patch / png_name, patch)
+
             # (1) segment ears in patch ================================================================================
-            proba, mask, overlay = self.segment_image(
+            proba, ear_mask, ear_overlay = self.segment_image(
                 patch,
                 model=self.ear_model,
                 transform=transform_ear
             )
 
             # output paths
-            mask_name = self.path_ear_mask / png_name
+            ear_mask_name = self.path_ear_mask / png_name
             overlay_name = self.path_ear_overlay / base_name
 
             # save output
-            imageio.imwrite(mask_name, mask)
-            imageio.imwrite(overlay_name, overlay)
+            imageio.imwrite(ear_mask_name, ear_mask)
+            imageio.imwrite(overlay_name, ear_overlay)
 
             # (2) segment vegetation in patch  =========================================================================
-            proba, mask, overlay = self.segment_image(
+            proba, veg_mask, veg_overlay = self.segment_image(
                 patch,
                 model=self.veg_model,
                 transform=transform_veg
             )
 
             # output paths
-            mask_name = self.path_veg_mask / png_name
+            veg_mask_name = self.path_veg_mask / png_name
             overlay_name = self.path_veg_overlay / base_name
 
             # save output
-            imageio.imwrite(mask_name, mask)
-            imageio.imwrite(overlay_name, overlay)
+            imageio.imwrite(veg_mask_name, veg_mask)
+            imageio.imwrite(overlay_name, veg_overlay)
+
+            # (3) color-based segmentation =============================================================================
+
+            # downscale
+            x_new = int(patch.shape[0] * (1 / 2))
+            y_new = int(patch.shape[1] * (1 / 2))
+            patch_seg = cv2.resize(patch, (y_new, x_new), interpolation=cv2.INTER_LINEAR)
+
+            # extract pixel features
+            color_spaces, descriptors, descriptor_names = SegmentationFunctions.get_color_spaces(patch_seg)
+            descriptors_flatten = descriptors.reshape(-1, descriptors.shape[-1])
+
+            # get pixel label probabilities
+            segmented_flatten_probs = self.col_model.predict(descriptors_flatten)
+
+            # restore image
+            preds = segmented_flatten_probs.reshape((descriptors.shape[0], descriptors.shape[1]))
+
+            # convert to mask
+            mask = np.zeros_like(patch_seg)
+            mask[np.where(preds == "brown")] = (102, 61, 20)
+            mask[np.where(preds == "yellow")] = (255, 204, 0)
+            mask[np.where(preds == "green")] = (0, 100, 0)
+
+            # upscale
+            x_new = int(patch_seg.shape[0] * (2))
+            y_new = int(patch_seg.shape[1] * (2))
+            mask = cv2.resize(mask, (y_new, x_new), interpolation=cv2.INTER_NEAREST)
+
+            # remove background
+            veg_col_mask_name = self.path_veg_col_mask / png_name
+            veg_col_mask = copy.copy(mask)
+            veg_col_mask[np.where(veg_mask == 0)] = (0, 0, 0)
+            imageio.imwrite(veg_col_mask_name, veg_col_mask)
+
+            # isolate ears
+            ear_col_mask_name = self.path_ear_col_mask / png_name
+            ear_col_mask = copy.copy(mask)
+            ear_col_mask[np.where(ear_mask == 0)] = (0, 0, 0)
+            imageio.imwrite(ear_col_mask_name, ear_col_mask)
+
+
+
+
+
+
+
+

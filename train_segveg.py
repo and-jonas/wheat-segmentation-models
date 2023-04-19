@@ -61,10 +61,14 @@ batch_size = find_max_batch_size_simple(
 )
 
 datamodule = SemanticSegmentationData.from_folders(
-    train_folder="data/SegVeg/train/images",
-    train_target_folder="data/SegVeg/train/masks",
-    val_folder="data/SegVeg/validation/images",
-    val_target_folder="data/SegVeg/validation/masks",
+    # train_folder="data/SegVeg/train/images",
+    # train_target_folder="data/SegVeg/train/masks",
+    # val_folder="data/SegVeg/validation/images",
+    # val_target_folder="data/SegVeg/validation/masks",
+    train_folder="/projects/SegVeg2/data/4tile_10soil_0composite/train/images",
+    train_target_folder="/projects/SegVeg2/data/4tile_10soil_0composite/train/masks",
+    val_folder="/projects/SegVeg2/data/4tile_10soil_0composite/validation/images",
+    val_target_folder="/projects/SegVeg2/data/4tile_10soil_0composite/validation/masks",
     train_transform=transform,
     val_transform=transform,
     test_transform=transform,
@@ -111,7 +115,7 @@ trainer = Trainer(max_epochs=300,
                   logger=logger,
                   callbacks=[early_stopping, lr_monitor],
                   reload_dataloaders_every_n_epochs=1,
-                  enable_checkpointing=True,
+                  enable_checkpointing=False,
                   log_every_n_steps=10,
                   )
 
