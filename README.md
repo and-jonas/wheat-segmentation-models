@@ -1,5 +1,7 @@
 # wheat-segmentation-models
 
+![Alt text](ExampleOutput.png)
+
 This repository contains code for training and validating wheat total vegetation and wheat ear segmentation models. 
 
 ## Author
