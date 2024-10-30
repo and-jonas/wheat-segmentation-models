@@ -8,6 +8,8 @@ from torch.utils.data.sampler import RandomSampler
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import ModelCheckpoint
+
 
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
@@ -86,7 +88,7 @@ model = SemanticSegmentation(
     optimizer=(optimizer, {"momentum": momentum}),
     learning_rate=learning_rate,
 )
-early_stopping = EarlyStopping(monitor='val_f1score', mode='max', patience=30, min_delta=0)
+early_stopping = EarlyStopping(monitor='val_f1score', mode='max', patience=35, min_delta=0)
 lr_monitor = LearningRateMonitor(logging_interval="epoch", log_momentum=True)
 
 logger = TensorBoardLogger(save_dir="./loggers",
@@ -103,12 +105,21 @@ logger.log_hyperparams({"head": head,
                         "p_color_jitter": p_color_jitter,
                         "batch_size": datamodule.batch_size})
 
+checkpointing = ModelCheckpoint(
+    dirpath=".",
+    save_top_k=1,
+    monitor="val_f1score",
+    mode="max",
+    filename="segeartest-{epoch:02d}-{step:.2f}",
+    save_weights_only=True,
+)
+
 trainer = Trainer(max_epochs=300,
                   move_metrics_to_cpu=True,
                   gpus=[3],
                   precision=16,
                   logger=logger,
-                  callbacks=[early_stopping, lr_monitor],
+                  callbacks=[early_stopping, lr_monitor, checkpointing],
                   reload_dataloaders_every_n_epochs=1,
                   enable_checkpointing=True,
                   log_every_n_steps=10,
