@@ -8,6 +8,7 @@ from torch.utils.data.sampler import RandomSampler
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
@@ -61,14 +62,10 @@ batch_size = find_max_batch_size_simple(
 )
 
 datamodule = SemanticSegmentationData.from_folders(
-    # train_folder="data/SegVeg/train/images",
-    # train_target_folder="data/SegVeg/train/masks",
-    # val_folder="data/SegVeg/validation/images",
-    # val_target_folder="data/SegVeg/validation/masks",
-    train_folder="/projects/SegVeg2/data/4tile_10soil_0composite/train/images",
-    train_target_folder="/projects/SegVeg2/data/4tile_10soil_0composite/train/masks",
-    val_folder="/projects/SegVeg2/data/4tile_10soil_0composite/validation/images",
-    val_target_folder="/projects/SegVeg2/data/4tile_10soil_0composite/validation/masks",
+    train_folder="/projects/SegVeg2/data/train/images",
+    train_target_folder="/projects/SegVeg2/data/train/masks",
+    val_folder="/projects/SegVeg2/data/validation/images",
+    val_target_folder="/projects/SegVeg2/data/validation/masks",
     train_transform=transform,
     val_transform=transform,
     test_transform=transform,
@@ -108,14 +105,23 @@ logger.log_hyperparams({"head": head,
                         "p_color_jitter": p_color_jitter,
                         "batch_size": datamodule.batch_size})
 
+checkpointing = ModelCheckpoint(
+    dirpath=".",
+    save_top_k=1,
+    monitor="val_f1score",
+    mode="max",
+    filename="segveg_best-{epoch:02d}-{step:.2f}",
+    save_weights_only=True,
+)
+
 trainer = Trainer(max_epochs=300,
                   move_metrics_to_cpu=True,
-                  gpus=[3],
+                  gpus=[2],
                   precision=16,
                   logger=logger,
-                  callbacks=[early_stopping, lr_monitor],
+                  callbacks=[early_stopping, lr_monitor, checkpointing],
                   reload_dataloaders_every_n_epochs=1,
-                  enable_checkpointing=False,
+                  enable_checkpointing=True,
                   log_every_n_steps=10,
                   )
 
@@ -135,4 +141,4 @@ value = max(v)
 logger.log_metrics({"hp_metric": value})
 
 # export model
-# trainer.save_checkpoint("/projects/SegEar/segear_ff.pt")
+# trainer.save_checkpoint("/projects/SegEar/segear_v2.pt")
