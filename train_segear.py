@@ -63,10 +63,10 @@ batch_size = find_max_batch_size_simple(
 )
 
 datamodule = SemanticSegmentationData.from_folders(
-    train_folder="data/SegEar/train/images",
-    train_target_folder="data/SegEar/train/masks",
-    val_folder="data/SegEar/validation/images",
-    val_target_folder="data/SegEar/validation/masks",
+    train_folder="/projects/SegEar/data/train/images",
+    train_target_folder="/projects/SegEar/data/train/masks",
+    val_folder="/projects/SegEar/data/validation/images",
+    val_target_folder="/projects/SegEar/data/validation/masks",
     train_transform=transform,
     val_transform=transform,
     test_transform=transform,
@@ -110,7 +110,7 @@ checkpointing = ModelCheckpoint(
     save_top_k=1,
     monitor="val_f1score",
     mode="max",
-    filename="segeartest-{epoch:02d}-{step:.2f}",
+    filename="segear_best-{epoch:02d}-{step:.2f}",
     save_weights_only=True,
 )
 
@@ -141,4 +141,4 @@ value = max(v)
 logger.log_metrics({"hp_metric": value})
 
 # export model
-# trainer.save_checkpoint("/projects/SegEar/segear_ff.pt")
+trainer.save_checkpoint("/projects/SegEar/segear_v2.pt")
