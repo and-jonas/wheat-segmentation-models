@@ -141,4 +141,4 @@ value = max(v)
 logger.log_metrics({"hp_metric": value})
 
 # export model
-# trainer.save_checkpoint("/projects/SegEar/segear_v2.pt")
+trainer.save_checkpoint("segveg_v2.pt")

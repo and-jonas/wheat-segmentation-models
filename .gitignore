@@ -2,3 +2,5 @@ loggers
 segcol_rf.pkl
 segveg_ff.pt
 segear_ff.pt
+segveg_v2.pt
+segear_v2.pt

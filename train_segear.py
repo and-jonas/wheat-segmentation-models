@@ -10,7 +10,6 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from flash.image import SemanticSegmentation, SemanticSegmentationData
@@ -141,4 +140,4 @@ value = max(v)
 logger.log_metrics({"hp_metric": value})
 
 # export model
-trainer.save_checkpoint("/projects/SegEar/segear_v2.pt")
+trainer.save_checkpoint("segear_v2.pt")
