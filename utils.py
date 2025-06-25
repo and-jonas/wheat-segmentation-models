@@ -47,6 +47,17 @@ def list_by_date(data_root, roi_root):
 
     return JPG, ROI
 
+def center_crop(img_array: np.ndarray, crop_size: int = 4000) -> np.ndarray:
+    h, w = img_array.shape[:2]
+
+    if h < crop_size or w < crop_size:
+        raise ValueError(f"Image is too small ({w}x{h}) for a {crop_size}x{crop_size} center crop.")
+
+    x_start = (w - crop_size) // 2
+    y_start = (h - crop_size) // 2
+
+    return img_array[y_start:y_start + crop_size, x_start:x_start + crop_size]
+
 
 def crop_images(date_images, date_rois):
 
@@ -173,10 +184,14 @@ def index_distribution(image, feature_name, level_id, level_mask):
     md = np.nanmedian(px_roi)
     kt = kurtosis(px_roi, nan_policy='omit')
     sk = skew(px_roi, nan_policy='omit')
-    p75, p251 = np.nanpercentile(px_roi, [75, 25])
-    iqr = p75 - p251
-    p98, p02 = np.nanpercentile(px_roi, [98, 2])
-    ipr = p98 - p02
+    if not px_roi.size == 0:
+        p75, p25 = np.nanpercentile(px_roi, [75, 25])
+        iqr = p75 - p25
+        p98, p02 = np.nanpercentile(px_roi, [98, 2])
+        ipr = p98 - p02
+    else:
+        iqr = np.nan
+        ipr = np.nan
     std = np.nanstd(px_roi)
     stat_names = ["mean", "median", "kurtosis", "skewness", "intqrange", "intprange", "stddev"]
     stat_names = [level_id + "_" + feature_name + "_" + n for n in stat_names]

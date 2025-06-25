@@ -6,7 +6,7 @@ from ImageSegmentor import Segmentor
 # Set up argument parsing
 parser = argparse.ArgumentParser(description="Run segmentation.")
 parser.add_argument("--experiment", type=str, required=True, help="Experiment ID")
-parser.add_argument("--output_dir", type=str, default="output2", help="Name of output directory")
+parser.add_argument("--output_dir", type=str, required=True, help="Name of output directory")
 parser.add_argument("--model_veg", type=str, default="segveg_v2.pt", help="Vegetation segmentation model")
 parser.add_argument("--model_ear", type=str, default="segear_v2.pt", help="Ear segmentation model")
 parser.add_argument("--model_col", type=str, default="segcol_rf.pkl", help="Color segmentation model")
@@ -37,13 +37,19 @@ elif experiment == "ESWW007" or experiment == "ESWW008":
 elif experiment == "ESWW009" or experiment == "ESWW010":
     year = "2024"
 
+# determine image subdirectory name depending on experiment id
+if experiment == "ESWW006":
+    img_subdir = "/JPEG"
+else:
+    img_subdir = "/JPEG_cam"
+
 # set working directory
 workdir = f'/home/anjonas/public/Public/Jonas/Data/{experiment}/ImagesNadir'
 
 # get a list of directories to process
 dirs = [f for f in os.listdir(workdir) if year in f]
 dirs = [os.path.join(workdir, d) for d in dirs]
-dirs = [d + "/JPEG_cam" for d in dirs]
+dirs = [d + img_subdir for d in dirs]
 
 
 # function to process directories
