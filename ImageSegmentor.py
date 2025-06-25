@@ -117,7 +117,7 @@ class Segmentor:
             proc_idx = [idx for idx, img in enumerate(img_ids) if img not in processed]
             files = [files[i] for i in proc_idx]
 
-        return files[2:]
+        return files
 
     @staticmethod
     def make_overlay(patch, mask, colors=[(1, 0, 0, 0.25)]):
